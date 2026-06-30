@@ -1,7 +1,7 @@
 """
 暑假课程提醒脚本
 - 读取 schedule.json（从课程表编辑器导出）
-- 检查当前时间，距开课约 30 分钟时通过 Server酱 推送到微信
+- 检查当前时间，距开课约 30 分钟时通过 PushPlus 群组推送到微信
 - 配合 GitHub Actions 每 30 分钟自动运行
 """
 
@@ -12,26 +12,36 @@ import datetime
 import requests
 
 # ── 配置 ──────────────────────────────────────────────
-# Server酱 SendKey，通过 GitHub Secrets 传入
-SEND_KEY = os.environ.get("SEND_KEY", "")
-if not SEND_KEY:
-    print("未设置 SEND_KEY，跳过推送")
+PUSHPLUS_TOKEN = os.environ.get("PUSHPLUS_TOKEN", "")
+PUSHPLUS_TOPIC = os.environ.get("PUSHPLUS_TOPIC", "")
+
+if not PUSHPLUS_TOKEN:
+    print("未设置 PUSHPLUS_TOKEN，跳过推送")
     exit(0)
 
 REMIND_MINUTES = 30          # 提前多少分钟提醒
-TOLERANCE_MINUTES = 15       # 容错窗口（>=15 避免同一条被两次检查重复发送）
+TOLERANCE_MINUTES = 15       # 容错窗口
 
 # ── 推送函数 ──────────────────────────────────────────
 def send_wx(title: str, content: str) -> bool:
-    """通过 Server酱 发送微信消息"""
+    """通过 PushPlus 群组发送微信消息（群内所有人都能收到）"""
+    payload = {
+        "token": PUSHPLUS_TOKEN,
+        "title": title,
+        "content": content.replace("\n", "<br>"),
+        "template": "html",
+    }
+    if PUSHPLUS_TOPIC:
+        payload["topic"] = PUSHPLUS_TOPIC
+
     try:
         r = requests.post(
-            f"https://sctapi.ftqq.com/{SEND_KEY}.send",
-            data={"title": title, "desp": content},
+            "http://www.pushplus.plus/send",
+            json=payload,
             timeout=10,
         )
         result = r.json()
-        if result.get("code") == 0:
+        if result.get("code") == 200:
             print(f"推送成功: {title}")
             return True
         else:
