@@ -18,5 +18,6 @@ jobs:
 
       - name: 检查课程并发送提醒
         env:
-          SEND_KEY: ${{ secrets.SEND_KEY }}
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          PUSHPLUS_TOPIC: ${{ secrets.PUSHPLUS_TOPIC }}
         run: python remind.py
